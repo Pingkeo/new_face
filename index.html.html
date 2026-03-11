@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>ບັນທຶກເວລາເຮັດວຽກດ້ວຍໃບໜ້າ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans Lao', sans-serif;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .glass-container {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            padding: 32px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        h1 {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 32px;
+            font-weight: 300;
+        }
+        .menu-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .menu-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .menu-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .menu-content {
+            flex: 1;
+        }
+        .menu-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .menu-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-container">
+        <h1>🔰 ບັນທຶກເວລາເຮັດວຽກ</h1>
+        <div class="subtitle">ດ້ວຍລະບົບຈົດຈຳໃບໜ້າ + ກວດສອບພິກັດ GPS</div>
+        
+        <div class="menu-grid">
+            <a href="register.html" class="menu-item">
+                <div class="menu-icon">📝</div>
+                <div class="menu-content">
+                    <div class="menu-title">ລົງທະບຽນພະນັກງານ</div>
+                    <div class="menu-desc">ເພີ່ມຂໍ້ມູນພະນັກງານ ແລະ ບັນທຶກໃບໜ້າ</div>
+                </div>
+                <div style="color: rgba(255,255,255,0.3);">→</div>
+            </a>
+            
+            <a href="scan.html" class="menu-item">
+                <div class="menu-icon">📷</div>
+                <div class="menu-content">
+                    <div class="menu-title">ສະແກນເຂົ້າວຽກ</div>
+                    <div class="menu-desc">ສະແກນໃບໜ້າເພື່ອບັນທຶກເວລາເຂົ້າວຽກ</div>
+                </div>
+                <div style="color: rgba(255,255,255,0.3);">→</div>
+            </a>
+            
+            <a href="config.html" class="menu-item">
+                <div class="menu-icon">⚙️</div>
+                <div class="menu-content">
+                    <div class="menu-title">ຕັ້ງຄ່າລະບົບ</div>
+                    <div class="menu-desc">ກຳນົດຈຸດ GPS ແລະ ຣັດສະໝີທີ່ອະນຸຍາດ</div>
+                </div>
+                <div style="color: rgba(255,255,255,0.3);">→</div>
+            </a>
+        </div>
+        
+        <div class="footer">
+            © 2026 ລະບົບບັນທຶກເວລາດ້ວຍໃບໜ້າ | ເວີຊັນ 2.0
+        </div>
+    </div>
+</body>
+</html>

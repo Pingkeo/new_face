@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>ສະແກນເຂົ້າວຽກ - ບັນທຶກເວລາ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="js/api-config.js"></script>
+    <script src="js/translations.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Noto Sans Lao', sans-serif; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2f 100%); padding: 16px; }
+        .glass-container {
+            max-width: 500px; margin: 0 auto; background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 32px;
+            padding: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        h1 { color: white; font-size: 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+        h1 a { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 20px; }
+        .video-container {
+            position: relative; width: 100%; border-radius: 20px; overflow: hidden;
+            border: 2px solid rgba(0, 255, 255, 0.3); margin: 20px 0;
+        }
+        video, canvas {
+            width: 100%; height: auto; display: block; transform: scaleX(-1);
+        }
+        canvas { position: absolute; top: 0; left: 0; }
+        .status-card {
+            background: rgba(0,0,0,0.4); border-radius: 16px; padding: 16px;
+            margin: 16px 0; color: white;
+        }
+        .status-item { display: flex; justify-content: space-between; margin: 8px 0; }
+        .label { color: rgba(255,255,255,0.6); }
+        .value { font-weight: 600; }
+        .gps-ok { color: #4ade80; }
+        .gps-error { color: #f87171; }
+        button {
+            width: 100%; padding: 16px; border-radius: 30px; border: none;
+            background: linear-gradient(135deg, #00b4d8, #0077b6); color: white;
+            font-size: 18px; font-weight: 600; cursor: pointer; transition: 0.3s;
+            margin: 10px 0;
+        }
+        button:hover { transform: translateY(-2px); opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #1e1e2f; border-radius: 32px; padding: 24px; width: 90%; max-width: 400px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .modal h2 { color: white; margin-bottom: 16px; }
+        .modal p { color: rgba(255,255,255,0.7); margin: 8px 0; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: rgba(255,255,255,0.4); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="glass-container">
+        <h1>
+            <a href="index.html">←</a> 
+            <span id="page-title">ສະແກນໃບໜ້າເຂົ້າວຽກ</span>
+        </h1>
+        
+        <div class="status-card">
+            <div class="status-item">
+                <span class="label" id="gps-label">ສະຖານະ GPS:</span>
+                <span class="value" id="gps-status">ກຳລັງກວດສອບ...</span>
+            </div>
+            <div class="status-item">
+                <span class="label" id="model-label">AI Model:</span>
+                <span class="value" id="model-status">ກຳລັງໂຫຼດ...</span>
+            </div>
+            <div class="status-item">
+                <span class="label" id="face-label">ສະຖານະ:</span>
+                <span class="value" id="face-status">ພ້ອມສະແກນ</span>
+            </div>
+        </div>
+        
+        <div class="video-container" style="display: none;" id="videoContainer">
+            <video id="video" autoplay muted></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <button id="startScanBtn">📷 ແຕະເພື່ອເລີ່ມສະແກນ</button>
+        
+        <a href="index.html" class="back-link">← ກັບໄປໜ້າຫຼັກ</a>
+    </div>
+    
+    <!-- Modal ຢືນຢັນ -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <h2>✅ <span id="confirm-title">ຢືນຢັນການເຂົ້າວຽກ</span></h2>
+            <p id="confirm-name">ຊື່: </p>
+            <p id="confirm-time">ເວລາ: </p>
+            <p id="confirm-date">ວັນທີ: </p>
+            <p id="confirm-location">ຕຳແໜ່ງ: </p>
+            <button id="confirmBtn">✅ ຢືນຢັນ</button>
+            <button id="cancelBtn" style="background: #4b5563;">↩️ ຍົກເລີກ</button>
+        </div>
+    </div>
+
+    <script>
+        const MATCH_THRESHOLD = 0.45;
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        
+        let modelsLoaded = false;
+        let knownFaces = [];
+        let knownNames = [];
+        let currentPosition = null;
+        let config = { targetLat: null, targetLng: null, radius: null };
+        let scanInterval = null;
+        let isScanning = false;
+        let matchedPerson = null;
+        
+        // ກວດສອບ GPS
+        function checkGPS() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject('GPS ບໍ່ຮອງຮັບ');
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        currentPosition = {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude
+                        };
+                        document.getElementById('gps-status').innerHTML = 
+                            `ເສັ້ນຂະໜານ: ${currentPosition.lat.toFixed(6)}, ເສັ້ນແວງ: ${currentPosition.lng.toFixed(6)}`;
+                        resolve(currentPosition);
+                    },
+                    (err) => {
+                        document.getElementById('gps-status').innerHTML = '❌ ບໍ່ສາມາດດຶງຕຳແໜ່ງໄດ້';
+                        reject(err);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            });
+        }
+        
+        // ກວດສອບວ່າຢູ່ໃນເຂດທີ່ກຳນົດບໍ່
+        function isWithinGeofence(lat1, lon1, lat2, lon2, radiusKm) {
+            if (radiusKm === 0) return true; // ຂ້າມການກວດ
+            const R = 6371; // ຣັດສະໝີໂລກ (ກມ)
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return distance <= radiusKm;
+        }
+        
+        // ໂຫຼດຂໍ້ມູນການຕັ້ງຄ່າ ແລະ ໃບໜ້າທີ່ຮູ້ຈັກ
+        async function loadConfigAndFaces() {
+            try {
+                // ດຶງການຕັ້ງຄ່າ
+                const configResp = await fetch(`${GAS_API_URL}?action=getConfig`);
+                const configData = await configResp.json();
+                if (configData) {
+                    config.targetLat = parseFloat(configData.targetLat);
+                    config.targetLng = parseFloat(configData.targetLng);
+                    config.radius = parseFloat(configData.radius);
+                }
+                
+                // ດຶງໃບໜ້າທີ່ຮູ້ຈັກ
+                const facesResp = await fetch(`${GAS_API_URL}?action=getKnownFaces`);
+                const facesData = await facesResp.json();
+                if (facesData && facesData.length > 0) {
+                    knownNames = facesData.map(f => f.name);
+                    knownFaces = facesData.map(f => {
+                        // ປ່ຽນ JSON array ກັບຄືນເປັນ Float32Array
+                        const descriptors = f.descriptors.map(d => Float32Array.from(d));
+                        return new faceapi.FaceMatcher(descriptors);
+                    });
+                }
+                
+                document.getElementById('model-status').innerHTML = 'ໂຫຼດຂໍ້ມູນສຳເລັດ';
+            } catch (error) {
+                console.error('loadConfigAndFaces error:', error);
+                document.getElementById('model-status').innerHTML = '❌ ໂຫຼດຂໍ້ມູນບໍ່ສຳເລັດ';
+            }
+        }
+        
+        // ເລີ່ມສະແກນ
+        async function startScan() {
+            if (isScanning) return;
+            
+            // ກວດ GPS ກ່ອນ
+            try {
+                await checkGPS();
+                if (config.radius > 0) {
+                    if (!isWithinGeofence(currentPosition.lat, currentPosition.lng, config.targetLat, config.targetLng, config.radius)) {
+                        alert(t('scan.locationError'));
+                        return;
+                    }
+                }
+            } catch (error) {
+                alert(t('scan.gpsRequired'));
+                return;
+            }
+            
+            // ເປີດກ້ອງ
+            document.getElementById('videoContainer').style.display = 'block';
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    startScanning();
+                };
+            } catch (error) {
+                alert(t('register.cameraError'));
+                console.error(error);
+            }
+        }
+        
+        // ເລີ່ມການສະແກນແບບອັດຕະໂນມັດ
+        function startScanning() {
+            isScanning = true;
+            document.getElementById('startScanBtn').disabled = true;
+            document.getElementById('face-status').innerHTML = 'ກຳລັງສະແກນ...';
+            
+            scanInterval = setInterval(async () => {
+                if (!modelsLoaded || !knownFaces.length) return;
+                
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const detection = await faceapi.detectSingleFace(canvas)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+                
+                if (detection) {
+                    // ປຽບທຽບກັບໃບໜ້າທີ່ຮູ້ຈັກ
+                    let bestMatch = null;
+                    let bestDistance = 1;
+                    
+                    for (let i = 0; i < knownFaces.length; i++) {
+                        const matcher = knownFaces[i];
+                        // ຕ້ອງປັບປຸງ: ປົກກະຕິແລ້ວ FaceMatcher ຮັບ descriptor ດຽວ, ແຕ່ເຮົາມີຫຼາຍ
+                        // ວິທີງ່າຍ: ສົມທຽບກັບແຕ່ລະ descriptor ແລ້ວເອົາຄ່າຕໍ່າສຸດ
+                        const desc = detection.descriptor;
+                        for (let j = 0; j < matcher.descriptors.length; j++) {
+                            const dist = faceapi.euclideanDistance(desc, matcher.descriptors[j]);
+                            if (dist < bestDistance) {
+                                bestDistance = dist;
+                                bestMatch = i;
+                            }
+                        }
+                    }
+                    
+                    if (bestMatch !== null && bestDistance < MATCH_THRESHOLD) {
+                        // ພົບໃບໜ້າທີ່ກົງກັນ
+                        clearInterval(scanInterval);
+                        isScanning = false;
+                        matchedPerson = {
+                            name: knownNames[bestMatch],
+                            distance: bestDistance,
+                            time: new Date().toLocaleTimeString('lo'),
+                            date: new Date().toLocaleDateString('lo')
+                        };
+                        
+                        // ສະແດງ modal
+                        document.getElementById('confirm-name').innerText = t('scan.name') + ': ' + matchedPerson.name;
+                        document.getElementById('confirm-time').innerText = t('scan.time') + ': ' + matchedPerson.time;
+                        document.getElementById('confirm-date').innerText = t('scan.date') + ': ' + matchedPerson.date;
+                        document.getElementById('confirm-location').innerText = '📍 ' + currentPosition.lat.toFixed(6) + ', ' + currentPosition.lng.toFixed(6);
+                        document.getElementById('confirmModal').style.display = 'flex';
+                    }
+                    
+                    // ແຕ້ມກອບ
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const dims = { width: canvas.width, height: canvas.height };
+                    const resizedDetection = detection.detection.forSize(dims.width, dims.height);
+                    faceapi.draw.drawDetections(canvas, resizedDetection);
+                }
+            }, 500);
+        }
+        
+        // ຢືນຢັນການເຂົ້າວຽກ
+        async function confirmAttendance() {
+            if (!matchedPerson) return;
+            
+            const data = {
+                action: 'logAttendance',
+                name: matchedPerson.name,
+                latitude: currentPosition.lat,
+                longitude: currentPosition.lng,
+                time: matchedPerson.time,
+                date: matchedPerson.date
+            };
+            
+            try {
+                await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                alert(t('scan.attendanceSuccess'));
+                window.location.reload();
+            } catch (error) {
+                alert(t('scan.attendanceError'));
+                console.error(error);
+            }
+            
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+        
+        // ໂຫຼດ AI Models
+        async function loadModels() {
+            document.getElementById('model-status').innerHTML = 'ກຳລັງໂຫຼດ AI...';
+            try {
+                await faceapi.nets.ssdMobilenetv1.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+                await faceapi.nets.faceRecognitionNet.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+                modelsLoaded = true;
+                document.getElementById('model-status').innerHTML = '✅ ພ້ອມໃຊ້ງານ';
+                
+                // ໂຫຼດຂໍ້ມູນການຕັ້ງຄ່າ ແລະ ໃບໜ້າ
+                await loadConfigAndFaces();
+            } catch (error) {
+                document.getElementById('model-status').innerHTML = '❌ ໂຫຼດ AI ບໍ່ສຳເລັດ';
+                console.error(error);
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('startScanBtn').addEventListener('click', startScan);
+        document.getElementById('confirmBtn').addEventListener('click', confirmAttendance);
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            window.location.reload();
+        });
+        
+        // ເລີ່ມຕົ້ນ
+        loadModels();
+        
+        // ຕັ້ງຄ່າຂໍ້ຄວາມ
+        document.getElementById('page-title').innerText = t('scan.title');
+        document.getElementById('gps-label').innerText = t('config.currentLocation') + ':';
+        document.getElementById('model-label').innerText = 'AI Model:';
+        document.getElementById('face-label').innerText = 'ສະຖານະ:';
+        document.getElementById('startScanBtn').innerHTML = '📷 ' + t('scan.startScan');
+        document.getElementById('confirm-title').innerText = t('scan.confirmAttendance');
+        document.getElementById('confirmBtn').innerHTML = '✅ ' + t('confirm');
+        document.getElementById('cancelBtn').innerHTML = '↩️ ' + t('cancel');
+    </script>
+</body>
+</html>
